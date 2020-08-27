@@ -1,0 +1,59 @@
+dist: focal
+language: go
+go:
+  - 1.15.x
+
+env:
+  global:
+    - DOCKER_HOST: tcp://127.0.0.1:12121
+
+before_script:
+  # Build dependencies
+  - sudo apt-get -y update
+  - sudo apt-get -y install git iptables libassuan-dev libc6-dev libdevmapper-dev libglib2.0-dev libgpgme-dev libgpg-error-dev libprotobuf-dev libprotobuf-c-dev libseccomp-dev libselinux1-dev libsystemd-dev pkg-config uidmap libsystemd0 runc build-essential
+
+  # - mkdir -p $GOPATH/src/github.com/opencontainers && cd $GOPATH/src/github.com/opencontainers && git clone https://github.com/opencontainers/runc.git
+  # - cd $GOPATH/src/github.com/opencontainers/runc && make BUILDTAGS="" && sudo cp runc /usr/bin/runc
+  - mkdir -p $GOPATH/src/github.com/containers && cd $GOPATH/src/github.com/containers && git clone https://github.com/containers/conmon.git
+  - cd $GOPATH/src/github.com/containers/conmon && make && sudo -E make podman
+
+  # Podman
+  - mkdir -p $GOPATH/src/github.com/containers && cd $GOPATH/src/github.com/containers && git clone https://github.com/containers/podman.git
+  
+  - sudo -E echo $PATH
+  - sudo echo $PATH
+  - cd $GOPATH/src/github.com/containers/podman && env PATH="$PATH" make && env PATH="$PATH" sudo -E env PATH="$PATH" make install PREFIX=/usr
+
+  # CNI
+  - mkdir -p $GOPATH/src/github.com/containernetworking && cd $GOPATH/src/github.com/containernetworking && git clone https://github.com/containernetworking/plugins.git
+  - cd $GOPATH/src/github.com/containernetworking/plugins && ./build_linux.sh
+  - sudo mkdir -p /usr/libexec/cni
+  - cd $GOPATH/src/github.com/containernetworking/plugins && sudo cp -v bin/* /usr/libexec/cni
+
+
+  # Add configs
+  - sudo mkdir -p /etc/containers
+  - sudo curl -L -o /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora
+  - sudo curl -L -o /etc/containers/policy.json https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json
+
+  # Add cni config
+  - sudo mkdir -p /etc/cni/net.d
+  - curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
+
+
+  # Show version and info.
+  - podman --version
+  - podman version
+  - podman info --debug
+
+  - sudo ln -s  `which podman` /usr/local/bin/docker
+
+  - mkdir -p $GOPATH/src/gitlab.com && cd $GOPATH/src/gitlab.com && git clone https://gitlab.com/gitlab-org/gitlab-runner.git
+
+
+script:
+  - sudo podman network create
+  - sudo podman run hello-world
+  - sudo docker info && sudo docker --log-level debug system service -t 0 tcp:localhost:12121 &
+  - sleep 10 && curl http://localhost:12121/images/json
+  - cd $GOPATH/src/gitlab.com/gitlab-runner/executors/docker && env PATH="$PATH" sudo -E env PATH="$PATH" go test -v
