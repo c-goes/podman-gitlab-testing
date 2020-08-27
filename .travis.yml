@@ -10,7 +10,8 @@ env:
 before_script:
   # Build dependencies
   - sudo apt-get -y update
-  - sudo apt-get -y install git iptables libassuan-dev libc6-dev libdevmapper-dev libglib2.0-dev libgpgme-dev libgpg-error-dev libprotobuf-dev libprotobuf-c-dev libseccomp-dev libselinux1-dev libsystemd-dev pkg-config uidmap libsystemd0 runc build-essential
+  - sudo apt-get -y install git iptables libassuan-dev libc6-dev libdevmapper-dev libglib2.0-dev libgpgme-dev libgpg-error-dev libprotobuf-dev libprotobuf-c-dev libseccomp-dev libselinux1-dev libsystemd-dev pkg-config uidmap libsystemd0 runc build-essential slirp4netns
+  - sudo apt-get -y remove docker docker.io
 
   # - mkdir -p $GOPATH/src/github.com/opencontainers && cd $GOPATH/src/github.com/opencontainers && git clone https://github.com/opencontainers/runc.git
   # - cd $GOPATH/src/github.com/opencontainers/runc && make BUILDTAGS="" && sudo cp runc /usr/bin/runc
@@ -46,14 +47,12 @@ before_script:
   - podman version
   - podman info --debug
 
-  - sudo ln -s  `which podman` /usr/local/bin/docker
+  - sudo ln -s `which podman` /usr/local/bin/docker
 
   - mkdir -p $GOPATH/src/gitlab.com && cd $GOPATH/src/gitlab.com && git clone https://gitlab.com/gitlab-org/gitlab-runner.git
 
 
 script:
-  - sudo podman network create
   - sudo podman run hello-world
-  - sudo docker info && sudo docker --log-level debug system service -t 0 tcp:localhost:12121 &
-  - sleep 10 && curl http://localhost:12121/images/json
-  - cd $GOPATH/src/gitlab.com/gitlab-runner/executors/docker && env PATH="$PATH" sudo -E env PATH="$PATH" go test -v
+  - sudo env PATH="$PATH" bash scripts/gitlab-runner.sh
+
