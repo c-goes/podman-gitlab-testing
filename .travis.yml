@@ -54,5 +54,5 @@ before_script:
 
 script:
   - sudo podman run hello-world
-  - sudo env PATH="$PATH" bash scripts/gitlab-runner.sh
+  - sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/gitlab-runner.sh
 
