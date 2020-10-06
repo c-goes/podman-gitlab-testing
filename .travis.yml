@@ -54,5 +54,6 @@ before_script:
 
 script:
   - sudo podman run hello-world
+  - sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/test-docker-build-compatible.sh
   - sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/gitlab-runner.sh
 
