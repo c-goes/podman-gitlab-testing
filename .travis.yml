@@ -52,8 +52,10 @@ before_script:
   - mkdir -p $GOPATH/src/gitlab.com && cd $GOPATH/src/gitlab.com && git clone https://gitlab.com/gitlab-org/gitlab-runner.git
 
 
-script:
-  - sudo podman run hello-world
-  - sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/test-docker-build-compatible.sh
-  - sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/gitlab-runner.sh
-
+jobs:
+  include:
+    - stage: integration
+      script: sudo podman run hello-world
+    - script: sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/test-docker-build-compatible.sh
+    - script: sudo env PATH="$PATH" bash $TRAVIS_BUILD_DIR/scripts/gitlab-runner.sh
+      
